@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>لوحة التحكم</title>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>لوحة التحكم</h1>
+        </header>
+        <main>
+            <div class="section">
+                <h2>إضافة مستخدم</h2>
+                <form id="user-form">
+                    <!-- تفاصيل المستخدم -->
+                    <input type="text" id="name" placeholder="الاسم" required>
+                    <input type="date" id="birthdate" required>
+                    <input type="text" id="id" placeholder="رقم الهوية" required>
+                    <input type="text" id="country" placeholder="الدولة" required>
+                    <input type="text" id="city" placeholder="المدينة" required>
+                    <button type="submit">إضافة مستخدم</button>
+                </form>
+            </div>
+            <div class="section">
+                <h2>قائمة المستخدمين</h2>
+                <ul id="user-list">
+                    <!-- هنا سيتم عرض بيانات المستخدمين -->
+                </ul>
+            </div>
+            <div class="section">
+                <h2>الإحصائيات</h2>
+                <button id="show-stats">عرض الإحصائيات</button>
+                <div id="statistics">
+                    <!-- هنا ستتم عرض الإحصائيات -->
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <canvas id="user-stats"></canvas>
+    <hr>
+    <canvas id="user-stats-pie"></canvas>
+
+
+</body>
+</html>
+<style>
+  /* إعدادات عامة */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* تصميم لوحة التحكم */
+.dashboard {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+main {
+    text-align: left;
+    padding: 20px;
+}
+
+.section {
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    padding: 20px;
+    border-radius: 5px;
+}
+
+h2 {
+    margin-top: 0;
+}
+
+input[type="text"],
+input[type="date"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+button {
+    background-color: #333;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+button:hover {
+    background-color: #444;
+}
+
+#statistics {
+    display: none;
+}
+
+</style>
+
+<script>
+  // مصفوفة لتخزين بيانات المستخدمين
+const users = [];
+
+const userForm = document.getElementById("user-form");
+const userList = document.getElementById("user-list");
+const showStatsButton = document.getElementById("show-stats");
+const statisticsDiv = document.getElementById("statistics");
+
+userForm.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    // استخراج البيانات من النموذج
+    const name = document.getElementById("name").value;
+    const birthdate = document.getElementById("birthdate").value;
+    const id = document.getElementById("id").value;
+    const country = document.getElementById("country").value;
+    const city = document.getElementById("city").value;
+
+    // إنشاء كائن للمستخدم
+    const user = {
+        name,
+        birthdate,
+        id,
+        country,
+        city
+    };
+
+    // إضافة المستخدم إلى المصفوفة وعرضه في القائمة
+    users.push(user);
+    displayUser(user);
+
+    // مسح بيانات النموذج
+    userForm.reset();
+});
+
+function displayUser(user) {
+    const listItem = document.createElement("li");
+    listItem.innerHTML = `
+        <strong>الاسم:</strong> ${user.name}<br>
+        <strong>تاريخ الميلاد:</strong> ${user.birthdate}<br>
+        <strong>رقم الهوية:</strong> ${user.id}<br>
+        <strong>الدولة:</strong> ${user.country}<br>
+        <strong>المدينة:</strong> ${user.city}<br>
+        <button class="edit-btn">تعديل</button>
+    `;
+    userList.appendChild(listItem);
+}
+
+// عند النقر على زر التعديل
+userList.addEventListener("click", function (e) {
+    if (e.target.classList.contains("edit-btn")) {
+        const listItem = e.target.parentElement;
+        const index = Array.from(userList.children).indexOf(listItem);
+
+        // عرض نافذة تعديل البيانات
+        const user = users[index];
+        const editedUser = prompt("تعديل المستخدم:", JSON.stringify(user));
+        if (editedUser) {
+            users[index] = JSON.parse(editedUser);
+            listItem.innerHTML = `
+                <strong>الاسم:</strong> ${users[index].name}<br>
+                <strong>تاريخ الميلاد:</strong> ${users[index].birthdate}<br>
+                <strong>رقم الهوية:</strong> ${users[index].id}<br>
+                <strong>الدولة:</strong> ${users[index].country}<br>
+                <strong>المدينة:</strong> ${users[index].city}<br>
+                <button class="edit-btn">تعديل</button>
+            `;
+        }
+    }
+});
+
+// عند النقر على زر عرض الإحصائيات
+showStatsButton.addEventListener("click", function () {
+    const stats = getStatistics();
+    statisticsDiv.innerHTML = `
+        <p><strong>عدد المستخدمين:</strong> ${stats.userCount}</p>
+        <p><strong>الدولة الأكثر شيوعًا:</strong> ${stats.mostCommonCountry}</p>
+        <p><strong>المدينة الأكثر شيوعًا:</strong> ${stats.mostCommonCity}</p>
+    `;
+    statisticsDiv.style.display = "block";
+});
+
+function getStatistics() {
+    const stats = {
+        userCount: users.length,
+        countries: {},
+        cities: {}
+    };
+
+    users.forEach(user => {
+        if (user.country in stats.countries) {
+            stats.countries[user.country]++;
+        } else {
+            stats.countries[user.country] = 1;
+        }
+
+        if (user.city in stats.cities) {
+            stats.cities[user.city]++;
+        } else {
+            stats.cities[user.city] = 1;
+        }
+    });
+
+    // الدولة الأكثر شيوعًا
+    stats.mostCommonCountry = Object.keys(stats.countries).reduce((a, b) =>
+        stats.countries[a] > stats.countries[b] ? a : b
+    );
+
+    // المدينة الأكثر شيوعًا
+    stats.mostCommonCity = Object.keys(stats.cities).reduce((a, b) =>
+        stats.cities[a] > stats.cities[b] ? a : b
+    );
+
+    return stats;
+}
+// في ملف script.js
+
+// ...
+// الكود السابق
+
+// قم بإنشاء دالة لرسم البيانات الإحصائية على شكل رسم بياني
+function drawStatistics(stats) {
+    const ctx = document.getElementById("user-stats").getContext("2d");
+
+    // تكوين البيانات
+    const data = {
+        labels: ["عدد المستخدمين", "الدولة الأكثر شيوعًا", "المدينة الأكثر شيوعًا"],
+        datasets: [
+            {
+                label: "الإحصائيات",
+                data: [stats.userCount, stats.countries[stats.mostCommonCountry], stats.cities[stats.mostCommonCity]],
+                backgroundColor: [
+                    "rgba(75, 192, 192, 0.2)",
+                    "rgba(255, 99, 132, 0.2)",
+                    "rgba(255, 206, 86, 0.2)"
+                ],
+                borderColor: [
+                    "rgba(75, 192, 192, 1)",
+                    "rgba(255, 99, 132, 1)",
+                    "rgba(255, 206, 86, 1)"
+                ],
+                borderWidth: 1
+            }
+        ]
+    };
+
+    // تكوين خيارات الرسم البياني
+    const options = {
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    };
+
+    // إنشاء الرسم البياني
+    const chart = new Chart(ctx, {
+        type: "bar",
+        data: data,
+        options: options
+    });
+}
+
+// ...
+// الكود السابق
+showStatsButton.addEventListener("click", function () {
+    const stats = getStatistics();
+    drawStatistics(stats);
+});
+
+// في ملف script.js
+
+// ...
+// الكود السابق
+
+// قم بإنشاء دالة لرسم البيانات الإحصائية على شكل رسم بياني دائري
+function drawPieChart(stats) {
+    const ctx = document.getElementById("user-stats-pie").getContext("2d");
+
+    // تكوين البيانات
+    const data = {
+        labels: ["عدد المستخدمين", "الدولة الأكثر شيوعًا", "المدينة الأكثر شيوعًا"],
+        datasets: [
+            {
+                data: [stats.userCount, stats.countries[stats.mostCommonCountry], stats.cities[stats.mostCommonCity]],
+                backgroundColor: ["rgba(75, 192, 192, 0.6)", "rgba(255, 99, 132, 0.6)", "rgba(255, 206, 86, 0.6)"]
+            }
+        ]
+    };
+
+    // إنشاء الرسم البياني الدائري
+    const chart = new Chart(ctx, {
+        type: "pie",
+        data: data
+    });
+}
+
+// ...
+// الكود السابق
+showStatsButton.addEventListener("click", function () {
+    const stats = getStatistics();
+    drawPieChart(stats);
+});
+
+
+</script>
